@@ -6,9 +6,7 @@ A dual-network deep learning system that classifies food images and estimates th
 
 This project implements an end-to-end pipeline for nutritional analysis of food images. Given an image of food, the system first classifies it into one of 101 food categories using a fine-tuned ResNet50 classifier trained on the Food-101 dataset, achieving 85.27% top-1 accuracy. Next, a separate regression network trained on the Nutrition5k dataset estimates the calorie content of the meal, achieving a mean absolute error of 107.5 kcal. The pipeline combines both networks to provide users with the predicted food type, classification confidence, and estimated calories in a single inference.
 
-## Quick Start
-
-### Google Colab (Recommended)
+## Quick Start Using Google Colab
 
 1. Open the notebook in Google Colab
 2. Run the setup cell to mount Google Drive and install dependencies:
@@ -78,18 +76,18 @@ gr.Interface(fn=predict, inputs=gr.Image(type="filepath"), outputs="text").launc
 
 | Model | MAE (kcal) | RMSE (kcal) | R² |
 |-------|------------|-------------|-----|
-| Mean Baseline | ~150 | ~200 | 0.000 |
+| Mean Baseline | 168 | 212 | 0.000 |
 | **Trained Regressor (Ours)** | **107.5** | **150.8** | **0.493** |
 
 ![Regressor Comparison](artifacts/figures/regressor_baseline_comparison.png)
 
 ### Training Curves
 
-The classifier achieved convergence after approximately 25 epochs with clear improvement over the baseline:
+The classifier achieved convergence after approximately 14 epochs with clear improvement over the baseline:
 
 ![Classifier Training Curves](artifacts/figures/classifier_training_curves_resnet50_20251205_104046.png)
 
-The regressor showed steady improvement in MAE throughout training:
+The regressor showed steady improvement in MAE throughout training but hit a plateau around 15 epochs.
 
 ![Regressor Training Curves](artifacts/figures/regressor_training_curves.png)
 

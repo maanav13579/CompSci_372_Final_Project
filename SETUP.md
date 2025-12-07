@@ -21,7 +21,7 @@ from google.colab import drive
 drive.mount('/content/drive')
 
 import sys, os
-PROJECT_ROOT = '/content/drive/MyDrive/Duke Undergrad/Senior/Applied Machine Learning/Final Project'
+PROJECT_ROOT = '{path to project folder}'
 sys.path.insert(0, os.path.join(PROJECT_ROOT, 'src'))
 os.chdir(PROJECT_ROOT)
 ```
@@ -62,7 +62,7 @@ print("Models created successfully!")
 
 ```bash
 git clone [repository-url]
-cd ai-food-recognizer
+cd CompSci_372_Final_Project
 ```
 
 ### Step 2: Create Virtual Environment
@@ -91,13 +91,11 @@ rm food-101.tar.gz
 ```
 
 **Nutrition5k (for regressor training):**
-- Request access at: https://github.com/google-research-datasets/Nutrition5k
-- Download and extract to `data/nutrition5k/`
-- Only the `imagery/realsense_overhead/`, `metadata/`, and `splits/` folders are required
+- Already included in data/ directory
 
 ## Running the Project
 
-### Training (Optional - Pre-trained models provided)
+### Training (Pre-trained models provided)
 
 **Train Classifier:**
 ```bash
@@ -189,22 +187,3 @@ ai-food-recognizer/
 ├── ATTRIBUTION.md
 └── requirements.txt
 ```
-
-## Troubleshooting
-
-### "Module not found" errors
-Ensure you've added `src` to your Python path:
-```python
-import sys
-sys.path.insert(0, 'src')
-```
-
-### PyTorch 2.6 `weights_only` errors
-All scripts have been updated to use `weights_only=False` for `torch.load()`. If you encounter this error, update the affected file.
-
-### Out of Memory
-- Reduce batch size: `--batch_size 16`
-- Use a smaller GPU or enable gradient checkpointing
-
-### Slow training on Google Drive
-Extract datasets to Colab's local storage (`/content/`) and create symlinks to your project's data folder.
