@@ -1,0 +1,22 @@
+{
+  "data_root": "data/nutrition5k",
+  "dataset_type": "nutrition5k",
+  "calorie_map": null,
+  "batch_size": 32,
+  "num_workers": 2,
+  "calorie_scale": 1000.0,
+  "backbone": "resnet50",
+  "freeze_backbone": true,
+  "hidden_dim": 256,
+  "dropout": 0.2,
+  "epochs": 25,
+  "lr": 0.001,
+  "weight_decay": 0.0001,
+  "loss": "huber",
+  "huber_delta": 0.5,
+  "use_amp": true,
+  "patience": 10,
+  "log_dir": "./artifacts/reg_logs",
+  "save_dir": "./artifacts/models",
+  "exp_name": "regressor_resnet50_20251205_081643"
+}

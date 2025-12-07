@@ -1,0 +1,11 @@
+{
+  "baseline_type": "logistic_regression_frozen_resnet50",
+  "val_top1": 57.87866020644618,
+  "val_top5": 83.08405308615968,
+  "test_top1": 62.95445544554455,
+  "test_top5": 87.10891089108911,
+  "random_baseline_top1": 0.9900990099009901,
+  "random_baseline_top5": 4.9504950495049505,
+  "train_samples": 66256,
+  "test_samples": 25250
+}

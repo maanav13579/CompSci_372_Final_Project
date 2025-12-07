@@ -1,0 +1,187 @@
+"""
+Food-101 Dataset for classification.
+"""
+import os
+from pathlib import Path
+from typing import Optional, Callable, Tuple, List, Dict
+
+import torch
+from torch.utils.data import Dataset, DataLoader
+from PIL import Image
+import json
+
+
+class Food101Dataset(Dataset):
+    """
+    Food-101 dataset for food classification.
+    
+    Expected directory structure:
+        food101/
+        ├── images/
+        │   ├── apple_pie/
+        │   │   ├── 123.jpg
+        │   │   └── ...
+        │   ├── baby_back_ribs/
+        │   └── ... (101 classes)
+        └── meta/
+            ├── classes.txt
+            ├── train.txt
+            └── test.txt
+    """
+    
+    def __init__(
+        self,
+        root: str,
+        split: str = "train",
+        transform: Optional[Callable] = None,
+        val_ratio: float = 0.125,  # 10% of total = 12.5% of train
+    ):
+        """
+        Args:
+            root: Path to food101 directory
+            split: One of 'train', 'val', 'test'
+            transform: Optional transform to apply to images
+            val_ratio: Ratio of training data to use for validation
+        """
+        self.root = Path(root)
+        self.split = split
+        self.transform = transform
+        self.val_ratio = val_ratio
+        
+        # Load class names
+        self.classes = self._load_classes()
+        self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
+        self.idx_to_class = {i: c for c, i in self.class_to_idx.items()}
+        
+        # Load image paths
+        self.samples = self._load_samples()
+        
+    def _load_classes(self) -> List[str]:
+        """Load class names from meta/classes.txt or infer from directory."""
+        classes_file = self.root / "meta" / "classes.txt"
+        if classes_file.exists():
+            with open(classes_file, "r") as f:
+                return sorted([line.strip() for line in f if line.strip()])
+        else:
+            # Infer from image directories
+            images_dir = self.root / "images"
+            return sorted([d.name for d in images_dir.iterdir() if d.is_dir()])
+    
+    def _load_samples(self) -> List[Tuple[Path, int]]:
+        """Load (image_path, label) pairs for the specified split."""
+        samples = []
+        
+        # Try to load from meta files first
+        if self.split == "test":
+            meta_file = self.root / "meta" / "test.txt"
+        else:
+            meta_file = self.root / "meta" / "train.txt"
+        
+        if meta_file.exists():
+            with open(meta_file, "r") as f:
+                all_paths = [line.strip() for line in f if line.strip()]
+            
+            for rel_path in all_paths:
+                class_name = rel_path.split("/")[0]
+                if class_name in self.class_to_idx:
+                    img_path = self.root / "images" / f"{rel_path}.jpg"
+                    if img_path.exists():
+                        samples.append((img_path, self.class_to_idx[class_name]))
+            
+            # Split train into train/val
+            if self.split in ["train", "val"]:
+                # Deterministic split based on filename hash
+                train_samples = []
+                val_samples = []
+                for path, label in samples:
+                    if hash(path.stem) % 1000 < int(self.val_ratio * 1000):
+                        val_samples.append((path, label))
+                    else:
+                        train_samples.append((path, label))
+                
+                samples = val_samples if self.split == "val" else train_samples
+        else:
+            # Fall back to directory scanning
+            images_dir = self.root / "images"
+            for class_name in self.classes:
+                class_dir = images_dir / class_name
+                if class_dir.exists():
+                    for img_file in class_dir.glob("*.jpg"):
+                        samples.append((img_file, self.class_to_idx[class_name]))
+        
+        return samples
+    
+    def __len__(self) -> int:
+        return len(self.samples)
+    
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
+        img_path, label = self.samples[idx]
+        
+        # Load image
+        image = Image.open(img_path).convert("RGB")
+        
+        # Apply transforms
+        if self.transform:
+            image = self.transform(image)
+        
+        return image, label
+    
+    def get_class_name(self, idx: int) -> str:
+        """Get class name from index."""
+        return self.idx_to_class[idx]
+    
+    @property
+    def num_classes(self) -> int:
+        return len(self.classes)
+
+
+def get_food101_dataloaders(
+    root: str,
+    batch_size: int = 32,
+    num_workers: int = 4,
+    train_transform: Optional[Callable] = None,
+    val_transform: Optional[Callable] = None,
+) -> Tuple[DataLoader, DataLoader, DataLoader]:
+    """
+    Create train, val, test dataloaders for Food-101.
+    
+    Returns:
+        Tuple of (train_loader, val_loader, test_loader)
+    """
+    from .transforms import get_train_transforms, get_val_transforms
+    
+    if train_transform is None:
+        train_transform = get_train_transforms()
+    if val_transform is None:
+        val_transform = get_val_transforms()
+    
+    train_dataset = Food101Dataset(root, split="train", transform=train_transform)
+    val_dataset = Food101Dataset(root, split="val", transform=val_transform)
+    test_dataset = Food101Dataset(root, split="test", transform=val_transform)
+    
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True,
+        drop_last=True,
+    )
+    
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+    
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+    
+    return train_loader, val_loader, test_loader
