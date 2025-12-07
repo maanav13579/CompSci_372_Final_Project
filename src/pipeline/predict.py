@@ -7,14 +7,13 @@ Usage:
     pipeline = FoodCaloriePipeline(
         classifier_path="artifacts/models/classifier_best.pth",
         regressor_path="artifacts/models/regressor_best.pth",
-        calorie_map_path="data/calorie_map.csv"
     )
     
     result = pipeline.predict("path/to/food/image.jpg")
 """
 import sys
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union, List
+from typing import Dict, Optional, Tuple, Union, List, Any
 
 import torch
 import torch.nn as nn
@@ -44,7 +43,6 @@ class FoodCaloriePipeline:
         self,
         classifier_path: Optional[str] = None,
         regressor_path: Optional[str] = None,
-        calorie_map_path: Optional[str] = None,
         device: Optional[str] = None,
         calorie_scale: float = 1000.0,
     ):
@@ -52,7 +50,6 @@ class FoodCaloriePipeline:
         Args:
             classifier_path: Path to trained classifier checkpoint
             regressor_path: Path to trained regressor checkpoint
-            calorie_map_path: Path to CSV with class -> calorie mapping
             device: Device to run inference on
             calorie_scale: Scale used during regressor training
         """
@@ -64,7 +61,6 @@ class FoodCaloriePipeline:
         # Load models
         self.classifier = None
         self.regressor = None
-        self.calorie_map = None
         self.class_names = None
         
         if classifier_path:
@@ -72,9 +68,6 @@ class FoodCaloriePipeline:
         
         if regressor_path:
             self._load_regressor(regressor_path)
-        
-        if calorie_map_path:
-            self._load_calorie_map(calorie_map_path)
         
         # Transforms
         self.transform = get_inference_transforms()
@@ -111,13 +104,6 @@ class FoodCaloriePipeline:
         self.regressor.eval()
         
         print(f"Loaded regressor from {path}")
-    
-    def _load_calorie_map(self, path: str):
-        """Load calorie lookup table."""
-        df = pd.read_csv(path)
-        self.calorie_map = dict(zip(df["class_name"], df["calories_per_serving"]))
-        self.class_names = list(df["class_name"])
-        print(f"Loaded calorie map with {len(self.calorie_map)} classes")
     
     def _preprocess(self, image: Union[str, Path, Image.Image]) -> torch.Tensor:
         """Load and preprocess image."""
@@ -188,24 +174,9 @@ class FoodCaloriePipeline:
         
         return calories
     
-    def estimate_calories_lookup(self, class_name: str) -> Optional[float]:
-        """
-        Get calorie estimate from lookup table.
-        
-        Returns:
-            Calories from lookup table, or None if not found
-        """
-        if self.calorie_map is None:
-            return None
-        
-        return self.calorie_map.get(class_name)
-    
     def predict(
         self,
         image: Union[str, Path, Image.Image],
-        strategy: str = "ensemble",
-        confidence_threshold: float = 0.7,
-        ensemble_weight: float = 0.5,
     ) -> Dict:
         """
         Full prediction: classify + estimate calories.
@@ -221,13 +192,12 @@ class FoodCaloriePipeline:
             ensemble_weight: Weight for regressor in ensemble (1-weight for lookup)
         
         Returns:
-            Dict with class_name, confidence, calories, method
+            Dict with class_name, confidence, calories
         """
-        result = {
+        result: Dict[str, Any]={
             "class_name": None,
             "confidence": None,
             "calories": None,
-            "method": strategy,
         }
         
         # Classification
@@ -236,67 +206,23 @@ class FoodCaloriePipeline:
             result["class_name"] = class_result["class_name"]
             result["confidence"] = class_result["confidence"]
             result["top5_classes"] = class_result["top5_classes"]
+        else:
+            print("no classifier")
         
-        # Calorie estimation based on strategy
-        if strategy == "classifier_only":
-            if result["class_name"] and self.calorie_map:
-                result["calories"] = self.estimate_calories_lookup(result["class_name"])
-                result["calorie_method"] = "lookup"
-        
-        elif strategy == "regressor_only":
-            if self.regressor:
-                result["calories"] = self.estimate_calories_regression(image)
-                result["calorie_method"] = "regression"
-        
-        elif strategy == "ensemble":
-            lookup_cal = None
-            regression_cal = None
-            
-            if result["class_name"] and self.calorie_map:
-                lookup_cal = self.estimate_calories_lookup(result["class_name"])
-            
-            if self.regressor:
-                regression_cal = self.estimate_calories_regression(image)
-            
-            if lookup_cal is not None and regression_cal is not None:
-                result["calories"] = (
-                    (1 - ensemble_weight) * lookup_cal + ensemble_weight * regression_cal
-                )
-                result["calorie_method"] = "ensemble"
-                result["lookup_calories"] = lookup_cal
-                result["regression_calories"] = regression_cal
-            elif lookup_cal is not None:
-                result["calories"] = lookup_cal
-                result["calorie_method"] = "lookup"
-            elif regression_cal is not None:
-                result["calories"] = regression_cal
-                result["calorie_method"] = "regression"
-        
-        elif strategy == "confidence_switch":
-            use_lookup = (
-                result["confidence"] is not None
-                and result["confidence"] >= confidence_threshold
-                and result["class_name"] is not None
-                and self.calorie_map is not None
-            )
-            
-            if use_lookup:
-                result["calories"] = self.estimate_calories_lookup(result["class_name"])
-                result["calorie_method"] = "lookup (high confidence)"
-            elif self.regressor:
-                result["calories"] = self.estimate_calories_regression(image)
-                result["calorie_method"] = "regression (low confidence)"
+        if self.regressor:
+            result["calories"] = self.estimate_calories_regression(image)
+        else:
+            print("no regressor")
         
         return result
     
     def predict_batch(
         self,
         images: List[Union[str, Path, Image.Image]],
-        strategy: str = "ensemble",
         **kwargs
     ) -> List[Dict]:
         """Predict on multiple images."""
-        return [self.predict(img, strategy=strategy, **kwargs) for img in images]
+        return [self.predict(img, **kwargs) for img in images]
 
 
 def demo():
@@ -308,16 +234,15 @@ def demo():
     pipeline = FoodCaloriePipeline(
         classifier_path="artifacts/models/classifier_best.pth",
         regressor_path="artifacts/models/regressor_best.pth",
-        calorie_map_path="data/calorie_map.csv",
     )
     
+    strategy = input("Enter")
     # Predict on a single image
-    result = pipeline.predict("path/to/food/image.jpg", strategy="ensemble")
+    result = pipeline.predict("path/to/food/image.jpg")
     
     print(f"Predicted class: {result['class_name']}")
     print(f"Confidence: {result['confidence']:.2%}")
     print(f"Estimated calories: {result['calories']:.0f} kcal")
-    print(f"Method: {result['calorie_method']}")
 
 
 if __name__ == "__main__":
