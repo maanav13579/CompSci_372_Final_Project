@@ -173,50 +173,7 @@ def main():
         json.dump(results, f, indent=2)
     print(f"\nResults saved to {results_path}")
     
-    # Create comparison plot
-    fig, ax = plt.subplots(figsize=(10, 6))
-    
-    models_names = ['Random\nGuessing', 'Logistic Reg.\n(Frozen ResNet50)', 'Fine-tuned\nResNet50\n(Your Model)']
-    top1_scores = [random_top1, test_top1, None]  # None = placeholder for your model
-    top5_scores = [random_top5, test_top5, None]
-    
-    x = np.arange(len(models_names))
-    width = 0.35
-    
-    bars1 = ax.bar(x - width/2, [s if s else 0 for s in top1_scores], width, label='Top-1 Accuracy', color='steelblue')
-    bars2 = ax.bar(x + width/2, [s if s else 0 for s in top5_scores], width, label='Top-5 Accuracy', color='lightcoral')
-    
-    # Add value labels
-    for bar, score in zip(bars1, top1_scores):
-        if score:
-            ax.annotate(f'{score:.1f}%', xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
-                       ha='center', va='bottom', fontsize=10)
-    
-    for bar, score in zip(bars2, top5_scores):
-        if score:
-            ax.annotate(f'{score:.1f}%', xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
-                       ha='center', va='bottom', fontsize=10)
-    
-    ax.set_ylabel('Accuracy (%)')
-    ax.set_title('Classifier Comparison: Baseline vs. Fine-tuned Model')
-    ax.set_xticks(x)
-    ax.set_xticklabels(models_names)
-    ax.legend()
-    ax.set_ylim(0, 100)
-    ax.grid(True, alpha=0.3, axis='y')
-    
-    # Add note about placeholder
-    ax.annotate('Add your\nmodel results', xy=(2, 10), ha='center', fontsize=9, color='gray')
-    
-    plt.tight_layout()
-    
-    fig_path = save_dir / "figures" / "baseline_comparison.png"
-    fig_path.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(fig_path, dpi=150, bbox_inches='tight')
-    plt.close()
-    
-    print(f"Comparison plot saved to {fig_path}")
-    print("\nNote: Update the plot with your fine-tuned model's results for final comparison!")
+   
 
 
 if __name__ == "__main__":
