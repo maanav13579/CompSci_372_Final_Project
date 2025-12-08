@@ -1,12 +1,7 @@
 """
-Baseline comparison for calorie regression.
+Baseline comparison for calorie regression. Compares trained regressor (frozen ResNet50 with trained MLP head)
+with just guessing the mean calories of the dataset.
 
-Compares:
-1. Mean baseline - Always predict the average calorie value
-2. Trained regressor - Your model's predictions
-
-Usage:
-    python baseline_regressor.py --data_root data/nutrition5k --model_path artifacts/models/regressor_best.pth
 """
 import os
 import sys
@@ -135,7 +130,8 @@ def main():
     mean_predictions = [mean_calorie] * len(targets)
     mean_metrics = compute_metrics(mean_predictions, targets)
     
-    # Print results
+    # Print results. All the code below is AI generated. It prints and presents the 
+    # model comparison data using bar charts and scatter plots.
     print(f"\n{'='*60}")
     print("BASELINE COMPARISON RESULTS")
     print(f"{'='*60}")
@@ -173,6 +169,8 @@ def main():
     r2_improvement = reg_metrics['r2'] - mean_metrics['r2']
     print(f"  R² improvement: {r2_improvement:.3f}")
     print(f"{'='*60}")
+
+    #AI generated code ends here
     
     # Save results
     results = {

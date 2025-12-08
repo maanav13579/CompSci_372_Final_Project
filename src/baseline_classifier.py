@@ -1,11 +1,9 @@
 """
-Baseline classifier using Logistic Regression on frozen ResNet50 features.
+Baseline classifier using random choice and Logistic Regression on frozen ResNet50 features.
 
-This baseline extracts features from a pretrained ResNet50 (no fine-tuning)
+The logistic regression baseline extracts features from a pretrained, but not fine-tined, ResNet50 
 and trains a simple logistic regression classifier on top.
 
-Usage:
-    python baseline_classifier.py --data_root data/food101
 """
 import os
 import sys
@@ -44,8 +42,9 @@ class FeatureExtractor(nn.Module):
     
     def __init__(self):
         super().__init__()
+
+        #Get resnet model and remove the built in classification layer
         resnet = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
-        # Remove the final classification layer
         self.features = nn.Sequential(*list(resnet.children())[:-1])
         
         # Freeze all parameters
@@ -54,7 +53,7 @@ class FeatureExtractor(nn.Module):
     
     def forward(self, x):
         x = self.features(x)
-        return x.view(x.size(0), -1)  # Flatten to (batch, 2048)
+        return x.view(x.size(0), -1) 
 
 
 @torch.no_grad()
@@ -101,15 +100,11 @@ def main():
     train_features, train_labels = extract_features(feature_extractor, train_loader, device)
     print(f"Train features shape: {train_features.shape}")
     
-    print("\nExtracting validation features...")
-    val_features, val_labels = extract_features(feature_extractor, val_loader, device)
-    
     print("\nExtracting test features...")
     test_features, test_labels = extract_features(feature_extractor, test_loader, device)
     
     # Train logistic regression
     print("\nTraining Logistic Regression classifier...")
-    print("(This may take a few minutes...)")
     
     clf = LogisticRegression(
         max_iter=args.max_iter,
@@ -119,17 +114,6 @@ def main():
         verbose=1,
     )
     clf.fit(train_features, train_labels)
-    
-    # Evaluate on validation set
-    print("\nEvaluating on validation set...")
-    val_pred = clf.predict(val_features)
-    val_proba = clf.predict_proba(val_features)
-    
-    val_top1 = accuracy_score(val_labels, val_pred) * 100
-    val_top5 = top_k_accuracy_score(val_labels, val_proba, k=5) * 100
-    
-    print(f"Val Top-1 Accuracy: {val_top1:.2f}%")
-    print(f"Val Top-5 Accuracy: {val_top5:.2f}%")
     
     # Evaluate on test set
     print("\nEvaluating on test set...")
@@ -147,8 +131,8 @@ def main():
     print(f"{'='*50}")
     
     # Also compute random baseline
-    random_top1 = 100 / 101  # 1/num_classes
-    random_top5 = 500 / 101  # 5/num_classes (capped at 100)
+    random_top1 = 100 / 101  
+    random_top5 = 500 / 101 
     random_top5 = min(random_top5, 100)
     
     print(f"\nRandom Guessing Baseline:")
@@ -158,8 +142,6 @@ def main():
     # Save results
     results = {
         "baseline_type": "logistic_regression_frozen_resnet50",
-        "val_top1": val_top1,
-        "val_top5": val_top5,
         "test_top1": test_top1,
         "test_top5": test_top5,
         "random_baseline_top1": random_top1,

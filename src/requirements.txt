@@ -20,6 +20,6 @@ grad-cam>=1.4.8
 tqdm>=4.65.0
 tensorboard>=2.13.0
 
-# Jupyter (for notebooks)
+# Jupyter 
 jupyter>=1.0.0
 ipykernel>=6.23.0
