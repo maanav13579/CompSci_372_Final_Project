@@ -1,6 +1,5 @@
 """
-Dataset for calorie regression.
-Supports both Nutrition5k and Food-101 with calorie lookup.
+Wrapper for calorie regression dataset (Nutrition5k).
 """
 import os
 from pathlib import Path
@@ -16,10 +15,6 @@ import numpy as np
 class CalorieDataset(Dataset):
     """
     Dataset for calorie regression.
-    
-    Can use either:
-    1. Nutrition5k dataset with per-image calorie labels
-    2. Food-101 images with class-average calorie lookup
     """
     
     def __init__(
@@ -65,12 +60,13 @@ class Nutrition5kDataset(Dataset):
     """
     Nutrition5k dataset loader.
     
+    The below diagram was generated using AI-Assistant, prompted with a text description of the file structure
     Expected structure:
         nutrition5k/
         ├── imagery/
         │   └── realsense_overhead/
         │       ├── dish_1551290117/
-        │       │   ├── rgb.png          <- Only this is used
+        │       │   ├── rgb.png          <- Only this is used. Overhead color picture. 
         │       │   ├── depth_color.png  <- Ignored
         │       │   └── depth_raw.png    <- Ignored
         │       └── ...
@@ -111,7 +107,7 @@ class Nutrition5kDataset(Dataset):
     def _load_samples(self, val_ratio: float) -> List[Tuple[Path, float]]:
         """Load image paths and calorie labels using official train/test splits."""
         
-        # Find split files
+        # Find split files (provided by nutrition5k developers)
         train_ids_file = self.root / "splits" / "rgb_train_ids.txt"
         test_ids_file = self.root / "splits" / "rgb_test_ids.txt"
         
@@ -128,13 +124,10 @@ class Nutrition5kDataset(Dataset):
         
         print(f"Loaded {len(train_ids)} train IDs and {len(test_ids)} test IDs from split files")
         
-        # Find metadata file
+        # Find metadata files provided by nutrition5k developers
         metadata_candidates = [
             self.root / "metadata" / "dish_metadata_cafe1.csv",
             self.root / "metadata" / "dish_metadata_cafe2.csv",
-            self.root / "metadata" / "dish_metadata.csv",
-            self.root / "dish_metadata_cafe1.csv",
-            self.root / "metadata.csv",
         ]
         
         metadata_file = None
@@ -156,9 +149,12 @@ class Nutrition5kDataset(Dataset):
         dish_ids = []
         calories = []
         
+        #Extract first two columns from metadata csv
         with open(metadata_file, 'r') as f:
             for line in f:
                 parts = line.strip().split(',')
+
+                #extract only valid columns with food_id and calorie information
                 if len(parts) >= 2:
                     dish_ids.append(parts[0])
                     try:
@@ -172,14 +168,13 @@ class Nutrition5kDataset(Dataset):
         
         df = pd.DataFrame({'dish_id': dish_ids, 'total_calories': calories})
         
-        # Use the known column names
         dish_id_col = 'dish_id'
         calorie_col = 'total_calories'
         
         print(f"Loaded {len(df)} rows from metadata")
         print(f"Using columns: dish_id='{dish_id_col}', calories='{calorie_col}'")
         
-        # Create dish_id -> calories mapping
+        # Create dish_id calorie mapping
         calorie_map = {}
         for _, row in df.iterrows():
             dish_id = str(row[dish_id_col])
@@ -189,20 +184,10 @@ class Nutrition5kDataset(Dataset):
         
         print(f"Loaded {len(calorie_map)} dishes with valid calorie data")
         
-        # Find imagery directory
-        imagery_dirs = [
-            self.root / "imagery" / "realsense_overhead",
-            self.root / "realsense_overhead",
-            self.root / "imagery",
-        ]
+
+        imagery_root = self.root / "imagery" / "realsense_overhead"
         
-        imagery_root = None
-        for img_dir in imagery_dirs:
-            if img_dir.exists():
-                imagery_root = img_dir
-                break
-        
-        if imagery_root is None:
+        if not imagery_root.exists():
             raise FileNotFoundError(f"Could not find imagery directory in {self.root}")
         
         print(f"Loading images from: {imagery_root}")
@@ -211,7 +196,6 @@ class Nutrition5kDataset(Dataset):
         if self.split == "test":
             dish_ids_to_use = test_ids
         else:
-            # Train and val come from train_ids
             dish_ids_to_use = train_ids
         
         samples = []
@@ -240,10 +224,7 @@ class Nutrition5kDataset(Dataset):
                 skipped += 1
         
         print(f"Found {len(samples)} valid samples, skipped {skipped}")
-        
-        if len(samples) == 0:
-            raise ValueError("No valid samples found! Check dataset structure.")
-        
+                
         # For train split, further divide into train/val
         if self.split in ["train", "val"]:
             np.random.seed(42)
@@ -252,7 +233,7 @@ class Nutrition5kDataset(Dataset):
             
             if self.split == "val":
                 indices = indices[:n_val]
-            else:  # train
+            else:  
                 indices = indices[n_val:]
             
             samples = [samples[i] for i in indices]
@@ -265,57 +246,11 @@ class Nutrition5kDataset(Dataset):
         return len(self.samples)
     
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        '''
+        Returns transformed and normalized image calorie pair from list of samples
+        '''
+
         img_path, calorie = self.samples[idx]
-        
-        image = Image.open(img_path).convert("RGB")
-        
-        if self.transform:
-            image = self.transform(image)
-        
-        calorie_normalized = torch.tensor(calorie / self.calorie_scale, dtype=torch.float32)
-        
-        return image, calorie_normalized
-
-
-class Food101WithCalories(Dataset):
-    """
-    Food-101 dataset with class-average calorie lookup.
-    Used when per-image calorie labels are unavailable.
-    """
-    
-    def __init__(
-        self,
-        food101_root: str,
-        calorie_map_path: str,
-        split: str = "train",
-        transform: Optional[Callable] = None,
-        calorie_scale: float = 1000.0,
-    ):
-        self.food101_root = Path(food101_root)
-        self.transform = transform
-        self.calorie_scale = calorie_scale
-        
-        # Load calorie map
-        self.calorie_map = self._load_calorie_map(calorie_map_path)
-        
-        # Load Food-101 samples
-        from .classifier_dset import Food101Dataset
-        self.food101 = Food101Dataset(food101_root, split=split)
-        
-    def _load_calorie_map(self, path: str) -> Dict[str, float]:
-        """Load class -> calorie mapping from CSV."""
-        df = pd.read_csv(path)
-        return dict(zip(df["class_name"], df["calories_per_serving"]))
-    
-    def __len__(self) -> int:
-        return len(self.food101)
-    
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        img_path, label = self.food101.samples[idx]
-        class_name = self.food101.get_class_name(label)
-        
-        # Get calorie value from lookup
-        calorie = self.calorie_map.get(class_name, 300.0)  # Default 300 kcal
         
         image = Image.open(img_path).convert("RGB")
         
@@ -330,7 +265,6 @@ class Food101WithCalories(Dataset):
 def get_calorie_dataloaders(
     dataset_type: str,
     root: str,
-    calorie_map_path: Optional[str] = None,
     batch_size: int = 32,
     num_workers: int = 4,
     train_transform: Optional[Callable] = None,
@@ -340,9 +274,8 @@ def get_calorie_dataloaders(
     Create dataloaders for calorie regression.
     
     Args:
-        dataset_type: 'nutrition5k' or 'food101_lookup'
+        dataset_type: 'nutrition5k'
         root: Path to dataset
-        calorie_map_path: Path to calorie CSV (for food101_lookup)
         batch_size: Batch size
         num_workers: Number of data loading workers
         
@@ -356,19 +289,15 @@ def get_calorie_dataloaders(
     if val_transform is None:
         val_transform = get_val_transforms()
     
+    #create train, val, test splits using the above classes
     if dataset_type == "nutrition5k":
         train_dataset = Nutrition5kDataset(root, split="train", transform=train_transform)
         val_dataset = Nutrition5kDataset(root, split="val", transform=val_transform)
         test_dataset = Nutrition5kDataset(root, split="test", transform=val_transform)
-    elif dataset_type == "food101_lookup":
-        if calorie_map_path is None:
-            raise ValueError("calorie_map_path required for food101_lookup")
-        train_dataset = Food101WithCalories(root, calorie_map_path, split="train", transform=train_transform)
-        val_dataset = Food101WithCalories(root, calorie_map_path, split="val", transform=val_transform)
-        test_dataset = Food101WithCalories(root, calorie_map_path, split="test", transform=val_transform)
     else:
         raise ValueError(f"Unknown dataset_type: {dataset_type}")
     
+    #create the dataloaders for each split
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
