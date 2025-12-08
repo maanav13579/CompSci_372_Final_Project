@@ -60,6 +60,12 @@ gr.Interface(fn=predict, inputs=gr.Image(type="filepath"), outputs="text").launc
 | Demo Video | [PLACEHOLDER - Add demo video link] |
 | Technical Walkthrough | [PLACEHOLDER - Add technical video link] |
 
+## Model Features
+- Implemented mixed precision training
+- Learning rate scheduling
+  - Linear warmup then cosine annealing for classifier
+  - Just Reduce on Plateau for regressor
+
 ## Evaluation
 
 ### Food Classification (Food-101 Dataset)

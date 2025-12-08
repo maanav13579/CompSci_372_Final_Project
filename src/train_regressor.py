@@ -1,9 +1,6 @@
 """
-Training script for Calorie Regression.
+Training script for calorie predictor. Regressor uses frozen ResNet50 with a custom MLP head
 
-Usage:
-    python train_regressor.py --data_root ./data/nutrition5k --epochs 25
-    python train_regressor.py --data_root ./data/food101 --dataset_type food101_lookup --calorie_map ./data/calorie_map.csv
 """
 import os
 import sys
@@ -36,8 +33,6 @@ def parse_args():
     parser.add_argument("--data_root", type=str, required=True)
     parser.add_argument("--dataset_type", type=str, default="nutrition5k", 
                         choices=["nutrition5k", "food101_lookup"])
-    parser.add_argument("--calorie_map", type=str, default=None, 
-                        help="Path to calorie map CSV (for food101_lookup)")
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--num_workers", type=int, default=4)
     parser.add_argument("--calorie_scale", type=float, default=1000.0)
@@ -123,12 +118,14 @@ def train_one_epoch(
     
     pbar = tqdm(train_loader, desc="Training", leave=False)
     
+    #training loop for single epoch
     for images, targets in pbar:
         images = images.to(device)
         targets = targets.to(device)
         
         optimizer.zero_grad()
         
+        #implemented mixed precision training
         with autocast(enabled=use_amp):
             outputs = model(images).squeeze()
             loss = criterion(outputs, targets)
@@ -141,6 +138,7 @@ def train_one_epoch(
             loss.backward()
             optimizer.step()
         
+        #loss calculations
         running_loss += loss.item() * images.size(0)
         total += images.size(0)
         
@@ -164,10 +162,12 @@ def validate(
     all_preds = []
     all_targets = []
     
+    #validation loop
     for images, targets in tqdm(val_loader, desc="Validating", leave=False):
         images = images.to(device)
         targets = targets.to(device)
         
+        #predict and calculate loss
         outputs = model(images).squeeze()
         loss = criterion(outputs, targets)
         
@@ -193,7 +193,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
-    # Experiment name
+    # Create experment for logs
     if args.exp_name is None:
         args.exp_name = f"regressor_{args.backbone}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
@@ -214,7 +214,6 @@ def main():
     train_loader, val_loader, test_loader = get_calorie_dataloaders(
         dataset_type=args.dataset_type,
         root=args.data_root,
-        calorie_map_path=args.calorie_map,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
     )
@@ -248,7 +247,7 @@ def main():
         weight_decay=args.weight_decay,
     )
     
-    # Scheduler
+    # Scheduler: Reduce learning rate durng plateau
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=5
     )
@@ -359,7 +358,7 @@ def main():
     with open(log_dir / "results.json", "w") as f:
         json.dump(results, f, indent=2)
     
-    # Plot training curves
+    # Plot training curves. Below code is generated using AI-Assistant
     epochs_range = range(1, len(history['train_loss']) + 1)
     
     fig, axes = plt.subplots(2, 3, figsize=(16, 10))
