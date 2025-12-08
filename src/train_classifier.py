@@ -1,5 +1,5 @@
 """
-Training script for classifier. Fine tunes ResNet50 model.
+Training script for classifier. Fine tunes ResNet50 model and trains custom classifier head.
 """
 import os
 import sys

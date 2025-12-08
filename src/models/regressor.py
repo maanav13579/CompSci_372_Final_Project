@@ -1,5 +1,5 @@
 """
-Calorie Regression Model using pretrained backbone features.
+Calorie Regression Model using pretrained backbone features with custom MLP for final prediction.
 """
 import torch
 import torch.nn as nn
@@ -18,7 +18,7 @@ class CalorieRegressor(nn.Module):
     
     def __init__(
         self,
-        backbone: Literal["resnet50", "efficientnet_b0"] = "resnet50",
+        backbone: Literal["resnet50"] = "resnet50",
         pretrained: bool = True,
         freeze_backbone: bool = True,
         hidden_dim: int = 256,
@@ -39,8 +39,6 @@ class CalorieRegressor(nn.Module):
         # Initialize backbone
         if backbone == "resnet50":
             self._init_resnet50(pretrained)
-        elif backbone == "efficientnet_b0":
-            self._init_efficientnet(pretrained)
         else:
             raise ValueError(f"Unknown backbone: {backbone}")
         
@@ -82,20 +80,6 @@ class CalorieRegressor(nn.Module):
         
         self.feature_dim = 2048
     
-    def _init_efficientnet(self, pretrained: bool):
-        """Initialize EfficientNet-B0 as feature extractor."""
-        weights = models.EfficientNet_B0_Weights.IMAGENET1K_V1 if pretrained else None
-        effnet = models.efficientnet_b0(weights=weights)
-        
-        # Use features and avgpool
-        self.backbone = nn.Sequential(
-            effnet.features,
-            effnet.avgpool,
-            nn.Flatten(),
-        )
-        
-        self.feature_dim = 1280
-    
     def _freeze_backbone(self):
         """Freeze backbone parameters."""
         for param in self.backbone.parameters():
@@ -109,10 +93,12 @@ class CalorieRegressor(nn.Module):
     def _init_regressor(self):
         """Initialize regression head weights."""
         for module in self.regressor.modules():
+            #linear layers intialized using Kaiming, and biases set to 0
             if isinstance(module, nn.Linear):
                 nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
                 if module.bias is not None:
                     nn.init.constant_(module.bias, 0)
+            #Scaling set to 1 and shifting set to 0 in batch norm layers
             elif isinstance(module, nn.BatchNorm1d):
                 nn.init.constant_(module.weight, 1)
                 nn.init.constant_(module.bias, 0)

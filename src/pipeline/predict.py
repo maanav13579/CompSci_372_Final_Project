@@ -1,15 +1,6 @@
 """
-Unified prediction pipeline combining classifier and regressor.
+Prediction pipeline combining classifier and regressor.
 
-Usage:
-    from pipeline.predict import FoodCaloriePipeline
-    
-    pipeline = FoodCaloriePipeline(
-        classifier_path="artifacts/models/classifier_best.pth",
-        regressor_path="artifacts/models/regressor_best.pth",
-    )
-    
-    result = pipeline.predict("path/to/food/image.jpg")
 """
 import sys
 from pathlib import Path
@@ -32,11 +23,6 @@ class FoodCaloriePipeline:
     """
     End-to-end pipeline for food classification and calorie estimation.
     
-    Supports multiple integration strategies:
-    1. Classifier only + calorie lookup
-    2. Regressor only
-    3. Ensemble (weighted combination)
-    4. Confidence-based switching
     """
     
     def __init__(
@@ -71,15 +57,17 @@ class FoodCaloriePipeline:
             print("starting to load regressor")
             self._load_regressor(regressor_path)
         
-        # Transforms
+        #Standardize input by resizing ot 224 x 224, then normalize with ImageNet mean and std
         self.transform = get_inference_transforms()
     
     def _load_classifier(self, path: str):
         """Load trained classifier."""
         print("in classifier loading method")
+        #get best model
         checkpoint = torch.load(path, map_location=self.device, weights_only = False) 
         config = checkpoint.get("config", {})
         
+        #intialize model and load trained parameters
         self.classifier = FoodClassifier(
             num_classes=config.get("num_classes", 101),
             backbone=config.get("backbone", "resnet50"),
@@ -89,6 +77,7 @@ class FoodCaloriePipeline:
         self.classifier = self.classifier.to(self.device)
         self.classifier.eval()
         
+        #classes that food can be sorted into
         self.class_names = [
             'apple_pie', 'baby_back_ribs', 'baklava', 'beef_carpaccio', 'beef_tartare',
             'beet_salad', 'beignets', 'bibimbap', 'bread_pudding', 'breakfast_burrito',
@@ -117,10 +106,13 @@ class FoodCaloriePipeline:
     
     def _load_regressor(self, path: str):
         """Load trained regressor."""
+
+        #get best regresor params
         checkpoint = torch.load(path, map_location=self.device, weights_only = False)
         config = checkpoint.get("config", {})
         print("attempting to load regressor")
         
+        #intialize regressor and load trained weights
         self.regressor = CalorieRegressor(
             backbone=config.get("backbone", "resnet50"),
             freeze_backbone=True,
@@ -154,6 +146,7 @@ class FoodCaloriePipeline:
         if self.classifier is None:
             raise ValueError("Classifier not loaded")
         
+        #pre-process image, compute logits and probability for classification
         tensor = self._preprocess(image)
         logits = self.classifier(tensor)
         probs = torch.softmax(logits, dim=1)[0]
@@ -196,6 +189,7 @@ class FoodCaloriePipeline:
         if self.regressor is None:
             raise ValueError("Regressor not loaded")
         
+        #preprocess image, predict calorie count
         tensor = self._preprocess(image)
         output = self.regressor(tensor)
         calories = output.item() * self.calorie_scale
@@ -211,14 +205,7 @@ class FoodCaloriePipeline:
         
         Args:
             image: Input food image
-            strategy: One of:
-                - 'classifier_only': Use classifier + lookup table
-                - 'regressor_only': Use regressor only
-                - 'ensemble': Weighted combination of lookup and regression
-                - 'confidence_switch': Use lookup if classifier confident, else regressor
-            confidence_threshold: Threshold for confidence-based switching
-            ensemble_weight: Weight for regressor in ensemble (1-weight for lookup)
-        
+
         Returns:
             Dict with class_name, confidence, calories
         """
@@ -258,7 +245,7 @@ def demo():
     print("FoodCaloriePipeline Demo")
     print("=" * 50)
     
-    # Example usage (with placeholder paths)
+    #pipline initialization
     pipeline = FoodCaloriePipeline(
         classifier_path="artifacts/models/classifier_best.pth",
         regressor_path="artifacts/models/regressor_best.pth",

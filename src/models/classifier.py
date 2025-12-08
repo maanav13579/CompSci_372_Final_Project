@@ -1,5 +1,5 @@
 """
-Food Classification Model using pretrained ResNet50 or ViT.
+Food Classification Model using pretrained ResNet50 with custom classifier head.
 """
 import torch
 import torch.nn as nn
@@ -11,13 +11,12 @@ class FoodClassifier(nn.Module):
     """
     Food classification model with pretrained backbone.
     
-    Supports ResNet50 and ViT-B/16 backbones.
     """
     
     def __init__(
         self,
         num_classes: int = 101,
-        backbone: Literal["resnet50", "vit_b_16"] = "resnet50",
+        backbone: Literal["resnet50"] = "resnet50",
         pretrained: bool = True,
         dropout: float = 0.3,
         freeze_backbone: bool = False,
@@ -37,8 +36,6 @@ class FoodClassifier(nn.Module):
         
         if backbone == "resnet50":
             self._init_resnet50(pretrained, dropout, num_classes)
-        elif backbone == "vit_b_16":
-            self._init_vit(pretrained, dropout, num_classes)
         else:
             raise ValueError(f"Unknown backbone: {backbone}")
         
@@ -61,21 +58,6 @@ class FoodClassifier(nn.Module):
         
         self.feature_dim = in_features
         
-    def _init_vit(self, pretrained: bool, dropout: float, num_classes: int):
-        """Initialize ViT-B/16 backbone."""
-        weights = models.ViT_B_16_Weights.IMAGENET1K_V1 if pretrained else None
-        self.backbone = models.vit_b_16(weights=weights)
-        
-        # Get feature dimension
-        in_features = self.backbone.heads.head.in_features  # 768
-        
-        # Replace classifier head
-        self.backbone.heads = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(in_features, num_classes),
-        )
-        
-        self.feature_dim = in_features
     
     def _freeze_backbone(self):
         """Freeze all backbone parameters except the classifier head."""
@@ -110,34 +92,20 @@ class FoodClassifier(nn.Module):
         Returns:
             Features of shape (B, feature_dim)
         """
-        if self.backbone_name == "resnet50":
-            # Forward through all layers except fc
-            x = self.backbone.conv1(x)
-            x = self.backbone.bn1(x)
-            x = self.backbone.relu(x)
-            x = self.backbone.maxpool(x)
-            
-            x = self.backbone.layer1(x)
-            x = self.backbone.layer2(x)
-            x = self.backbone.layer3(x)
-            x = self.backbone.layer4(x)
-            
-            x = self.backbone.avgpool(x)
-            x = torch.flatten(x, 1)
-            return x
-        else:
-            # ViT: use encoder output
-            x = self.backbone._process_input(x)
-            n = x.shape[0]
-            
-            # Expand class token
-            batch_class_token = self.backbone.class_token.expand(n, -1, -1)
-            x = torch.cat([batch_class_token, x], dim=1)
-            
-            x = self.backbone.encoder(x)
-            
-            # Return class token embedding
-            return x[:, 0]
+        # Forward through all layers except fc
+        x = self.backbone.conv1(x)
+        x = self.backbone.bn1(x)
+        x = self.backbone.relu(x)
+        x = self.backbone.maxpool(x)
+        
+        x = self.backbone.layer1(x)
+        x = self.backbone.layer2(x)
+        x = self.backbone.layer3(x)
+        x = self.backbone.layer4(x)
+        
+        x = self.backbone.avgpool(x)
+        x = torch.flatten(x, 1)
+        return x
     
     def predict(self, x: torch.Tensor) -> torch.Tensor:
         """

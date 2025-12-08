@@ -1,5 +1,5 @@
 """
-Baseline classifier using random choice and Logistic Regression on frozen ResNet50 features.
+Baseline classifier using: random choice, Logistic Regression on frozen ResNet50 features.
 
 The logistic regression baseline extracts features from a pretrained, but not fine-tined, ResNet50 
 and trains a simple logistic regression classifier on top.

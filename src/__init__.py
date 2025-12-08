@@ -1,5 +1,5 @@
 """
-Data loading utilities for AI Food Recognizer.
+Data loading utilities.
 """
 from .transforms import (
     get_train_transforms,

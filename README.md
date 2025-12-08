@@ -65,6 +65,8 @@ gr.Interface(fn=predict, inputs=gr.Image(type="filepath"), outputs="text").launc
 - Learning rate scheduling
   - Linear warmup then cosine annealing for classifier
   - Just Reduce on Plateau for regressor
+- Kaiming intializaiton for MLP weights for regressor
+- Huber Loss for calculating regressor loss because it's good for regreesion tasks and robust against outliers which there may be a lot of in dataset of food. Foods that look similar may have unexpectedly different calories.
 
 ## Evaluation
 
@@ -97,6 +99,14 @@ The regressor showed steady improvement in MAE throughout training but hit a pla
 
 ![Regressor Training Curves](artifacts/figures/regressor_training_curves.png)
 
+### Limitations and Out of Domain Images
+- Can only classify data into the 101 classes in food 101
+- Calorie estimation inherently inaccurate
+  - non visual features that are highly impactful
+    - oil type
+    - filling
+  - only 5000 possible images to train on, of those not all had accurate calorie information
+  - No targeted way of learning portion size
 ## Individual Contributions
 
 | Team Member | Contributions |
