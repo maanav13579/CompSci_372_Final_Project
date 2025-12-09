@@ -30,8 +30,9 @@ Final Project/
 ```
 ## Quick Start Using Google Colab
 
-1. Open the notebook in Google Colab
-2. Run the setup cell to mount Google Drive and install dependencies:
+1. Clone the repo and upload it to Google Drive
+2. Open a notebook in Google Colab
+3. Run the setup cell to mount Google Drive and install dependencies:
 ```python
 from google.colab import drive
 drive.mount('/content/drive')
