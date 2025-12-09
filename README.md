@@ -5,7 +5,29 @@ A dual-network deep learning system that classifies food images and estimates th
 ## What it Does
 
 This project implements an end-to-end pipeline for nutritional analysis of food images. Given an image of food, the system first classifies it into one of 101 food categories using a fine-tuned ResNet50 classifier trained on the Food-101 dataset, achieving 85.27% top-1 accuracy. Next, a separate regression network trained on the Nutrition5k dataset estimates the calorie content of the meal, achieving a mean absolute error of 107.5 kcal. The pipeline combines both networks to provide users with the predicted food type, classification confidence, and estimated calories in a single inference.
-
+## Project Structure
+```
+Final Project/
+├── artifacts/
+│   ├── class_logs/
+│   ├── figures/
+│   ├── models/
+│   └── reg_logs/
+│
+├── data/
+│   └── nutrition5k/
+│       ├── imagery/
+│       ├── metadata/
+│       └── splits/
+│
+├── mnt/
+│
+└── src/
+    ├── data/
+    ├── models/
+    ├── notebooks/
+    └── pipeline/
+```
 ## Quick Start Using Google Colab
 
 1. Open the notebook in Google Colab
@@ -94,13 +116,14 @@ The regressor showed steady improvement in MAE throughout training but hit a pla
 
 ### Limitations and Out of Domain Images
 - The model can only classify data into the 101 classes in food 101
-- The calorie estimation inherently inaccurate for the following reason
+- The calorie estimation inherently inaccurate for the following reasons
   - non visual features that are highly impactful
     - oil type (olive is is less calorie dense than vegitable oil)
     - fillings (if a croissant has a filling, it may not be visible in an overhead shot)
   - Calorie estimation was trained on only 5000 images, and of those not all had accurate calorie information
   - No targeted way of learning portion size
 - The model requires overhead shots for accurate classification and estimation, as it was mainly trined on overhead shots
+- A key limitation is the domain gap: the classifier was trained on web photos while the regressor was trained on overhead cafeteria images. We addressed this partially by using pretrained ImageNet features, which provide domain-agnostic visual representations. However, we evaluated each network on its own domain rather than making cross-domain claims. Bridging this gap through domain adaptation is future work.
 ## Individual Contributions
 
 | Team Member | Contributions |
