@@ -160,30 +160,3 @@ def predict(image):
 gr.Interface(fn=predict, inputs=gr.Image(type="filepath"), outputs="text").launch(share=True)
 ```
 
-## Project Structure
-
-```
-ai-food-recognizer/
-├── src/
-│   ├── data/                    # Data loading utilities
-│   │   ├── classifier_dset.py   # Food-101 dataset
-│   │   ├── regressor_dset.py    # Nutrition5k dataset
-│   │   └── transforms.py        # Image augmentations
-│   ├── models/                  # Model architectures
-│   │   ├── classifier.py        # ResNet50 classifier
-│   │   └── regressor.py         # Calorie regressor
-│   ├── pipeline/                # Inference pipeline
-│   │   └── predict.py           # Combined prediction
-│   ├── train_classifier.py      # Classifier training
-│   ├── train_regressor.py       # Regressor training
-│   ├── baseline_classifier.py   # Classifier baseline
-│   └── baseline_regressor.py    # Regressor baseline
-├── data/                        # Datasets (not included)
-├── artifacts/                   # Trained models and figures
-│   ├── models/
-│   └── figures/
-├── README.md
-├── SETUP.md
-├── ATTRIBUTION.md
-└── requirements.txt
-```

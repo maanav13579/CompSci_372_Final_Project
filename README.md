@@ -30,12 +30,21 @@ Final Project/
 ```
 ## Quick Start Using Google Colab
 
-1. Clone the repo and upload it to Google Drive
-2. Open a notebook in Google Colab
-3. Run the setup cell to mount Google Drive and install dependencies:
+1. Clone the repo and download the large files using the following commands.
+```
+git lfs install
+git lfs pull
+```   
+2. Upload the repo to Google Drive 
+3. Open a notebook in Google Colab
+4. Run the setup cell to mount Google Drive and install dependencies:
 ```python
 from google.colab import drive
 drive.mount('/content/drive')
+import sys, os
+PROJECT_ROOT = '/content/drive/MyDrive/CompSci_372_Final_Project-main'  
+sys.path.insert(0, os.path.join(PROJECT_ROOT, 'src'))
+os.chdir(PROJECT_ROOT)
 
 !pip install -q torch torchvision timm grad-cam tensorboard tqdm gradio
 ```
