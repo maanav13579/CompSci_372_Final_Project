@@ -11,10 +11,10 @@ Final Project/
 ├── artifacts/
 │   ├── class_logs/
 │   ├── figures/
-│   ├── models/
+│   ├── models/ <- .pth files
 │   └── reg_logs/
 │
-├── data/
+├── data/ <- data itself
 │   └── nutrition5k/
 │       ├── imagery/
 │       ├── metadata/
@@ -23,8 +23,8 @@ Final Project/
 ├── mnt/
 │
 └── src/
-    ├── data/
-    ├── models/
+    ├── data/ <- dataset wrappers
+    ├── models/ <- model architecture
     ├── notebooks/
     └── pipeline/
 ```
