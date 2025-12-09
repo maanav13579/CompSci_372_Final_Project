@@ -8,13 +8,21 @@ This guide provides instructions for setting up and running the AI Food Recogniz
 - CUDA-capable GPU (recommended for training; CPU works for inference)
 - Google account (for Colab) or local machine with ~20GB disk space
 
+## .pth files for model
+Backup in case github lfs pull doesn't work
+Box Drive with .pth files: https://duke.box.com/s/kcceaniko7lwno47x4dmok02z8seik1u
+
 ## Option 1: Google Colab (Recommended)
 
 ### Step 1: Open in Colab
 
-Upload the project folder to Google Drive or clone from the repository.
+Clone the repo and download the large files using the following commands.
+```
+git lfs install
+git lfs pull
+```  
 
-### Step 2: Mount Drive and Setup Environment
+### Step 2: Open Colab Notebook and Mount Drive and Setup Environment
 
 ```python
 from google.colab import drive
@@ -63,6 +71,8 @@ print("Models created successfully!")
 ```bash
 git clone [repository-url]
 cd CompSci_372_Final_Project
+git lfs install
+git lfs pull
 ```
 
 ### Step 2: Create Virtual Environment
