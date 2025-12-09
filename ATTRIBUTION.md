@@ -7,8 +7,6 @@ This document provides detailed attribution for all external resources, AI-gener
 Portions of this project's code and documentation were generated with assistance from **Claude (Anthropic)**. The AI assistant was used for:
 
 - Code
-  - Web Demo using gradio
-    - I DID NOT WRITE THE CODE FOR THIS DEMO. It is purely for having a nicer interface for the video, and I do not claim any points for a deployed web application (don't think it counts anyway).
   - Debugging and troubleshooting PyTorch compatibility issues
   - Training curve generation and visualization code
 - Documentation
