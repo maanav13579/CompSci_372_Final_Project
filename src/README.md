@@ -77,26 +77,27 @@ print(f"Calories: {result['calories']:.0f} kcal")
 ## Project Structure
 
 ```
-ai-food-recognizer/
-├── data/                          # Datasets
-│   ├── food101/                   # Food-101 dataset
-│   ├── nutrition5k/               # Nutrition5k dataset (optional)
-│   └── calorie_map.csv            # Class → calorie mapping
-├── src/
-│   ├── data/                      # Data loading utilities
-│   │   ├── transforms.py          # Image augmentations
-│   │   ├── classifier_dset.py     # Food-101 dataset
-│   │   └── regressor_dset.py      # Calorie dataset
+Final Project/
+├── artifacts/
+│   ├── class_logs/
+│   ├── figures/
 │   ├── models/
-│   │   ├── classifier.py          # Classification model
-│   │   └── regressor.py           # Regression model
-│   ├── pipeline/
-│   │   └── predict.py             # Unified inference pipeline
-│   ├── train_classifier.py        # Classification training
-│   └── train_regressor.py         # Regression training
-├── notebooks/                     # Jupyter notebooks for analysis
-├── artifacts/                     # Checkpoints, logs, figures
-└── requirements.txt
+│   └── reg_logs/
+│
+├── data/
+│   └── nutrition5k/
+│       ├── imagery/
+│       ├── metadata/
+│       └── splits/
+│
+├── mnt/
+│
+└── src/
+    ├── data/
+    ├── models/
+    ├── notebooks/
+    └── pipeline/
+
 ```
 
 ## Model Architectures
