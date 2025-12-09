@@ -80,7 +80,7 @@ gr.Interface(fn=predict, inputs=gr.Image(type="filepath"), outputs="text").launc
 | Video | Link |
 |-------|------|
 | Demo Video | https://youtu.be/aivXjzxfl1I |
-| Technical Walkthrough | [PLACEHOLDER - Add technical video link] |
+| Technical Walkthrough | https://youtu.be/hwiC5q3Ppc0 |
 
 
 ## Evaluation
